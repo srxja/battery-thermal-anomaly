@@ -1,0 +1,22 @@
+# Data and results
+data/
+results/
+*.jpg
+*.png
+*.pkl
+*.keras
+*.h5
+*.csv
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+
+# Colab
+.colab/
+
+# Environment
+.env
+venv/
