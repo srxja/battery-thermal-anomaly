@@ -200,11 +200,13 @@ def stage_5_evaluation(df_fused):
     # Add per-method rates to crate_df for plotting
     km_rates = df_fused.groupby("c_rate").apply(
         lambda g: 100 * g["km_anomaly"].sum() / len(g)
-    ).reset_index(name="KMeans_Rate_%")
+    ).reset_index()
+    km_rates.columns = ["c_rate", "KMeans_Rate_%"]
 
     ae_rates = df_fused.groupby("c_rate").apply(
         lambda g: 100 * g["ae_anomaly"].sum() / len(g)
-    ).reset_index(name="AE_Rate_%")
+    ).reset_index()
+    ae_rates.columns = ["c_rate", "AE_Rate_%"]
 
     crate_df = crate_df.merge(km_rates, on="c_rate", how="left")
     crate_df = crate_df.merge(ae_rates, on="c_rate", how="left")
