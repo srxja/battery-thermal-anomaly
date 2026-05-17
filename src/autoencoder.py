@@ -84,17 +84,17 @@ def build_conv_autoencoder(input_shape):
     x = Conv2D(128, (3, 3), padding="same", name="dec_conv1")(encoded)
     x = BatchNormalization(name="dec_bn1")(x)
     x = Activation("relu")(x)
-    x = UpSampling2D((2, 2), name="dec_up1")(x)            # 8→16
+    x = UpSampling2D((2, 2), name="dec_up1")(x)            # 16→32
 
     x = Conv2D(64, (3, 3), padding="same", name="dec_conv2")(x)
     x = BatchNormalization(name="dec_bn2")(x)
     x = Activation("relu")(x)
-    x = UpSampling2D((2, 2), name="dec_up2")(x)            # 16→32
+    x = UpSampling2D((2, 2), name="dec_up2")(x)            # 32→64
 
     x = Conv2D(32, (3, 3), padding="same", name="dec_conv3")(x)
     x = BatchNormalization(name="dec_bn3")(x)
     x = Activation("relu")(x)
-    x = UpSampling2D((2, 2), name="dec_up3")(x)            # 32→64
+    # no third upsample — already at 64×64
 
     decoded = Conv2D(
         1, (3, 3),
