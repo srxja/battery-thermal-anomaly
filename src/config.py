@@ -51,8 +51,8 @@ ENTROPY_BINS        = 256   # histogram bins for entropy
 # ─────────────────────────────────────────
 # GROUND TRUTH (physics-based thresholds)
 # ─────────────────────────────────────────
-GT_MAX_TEMP_PERCENTILE  = 95   # top 5% max_temp values = anomalous
-GT_GRADIENT_PERCENTILE  = 90   # top 10% gradient values = anomalous
+GT_MAX_TEMP_PERCENTILE  = 90   # top 5% max_temp values = anomalous
+GT_GRADIENT_PERCENTILE  = 75   # top 10% gradient values = anomalous
 
 # ─────────────────────────────────────────
 # CLUSTERING
