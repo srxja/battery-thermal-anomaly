@@ -63,13 +63,15 @@ def extract_features(image):
     max_temp = float(np.max(image))
 
     # Gradient magnitude (Sobel)
-    grad_x   = cv2.Sobel(image, cv2.CV_64F, 1, 0, ksize=3)
-    grad_y   = cv2.Sobel(image, cv2.CV_64F, 0, 1, ksize=3)
+    image64  = image.astype(np.float64)
+    grad_x   = cv2.Sobel(image64, cv2.CV_64F, 1, 0, ksize=3)
+    grad_y   = cv2.Sobel(image64, cv2.CV_64F, 0, 1, ksize=3)
     gradient = float(np.mean(np.sqrt(grad_x**2 + grad_y**2)))
 
     # Laplacian variance
-    laplacian     = cv2.Laplacian(image, cv2.CV_64F)
+    laplacian     = cv2.Laplacian(image64, cv2.CV_64F)
     laplacian_var = float(np.var(laplacian))
+
 
     # Hotspot area (fraction of pixels above 95th percentile)
     threshold    = np.percentile(image, HOTSPOT_PERCENTILE)
