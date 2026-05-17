@@ -279,16 +279,23 @@ def run():
     )
 
     # Merge ground truth into fused df
-    # gt columns live in df_features
     gt_cols = [
         "filename", "c_rate", "gt_label",
         "gt_max_thresh", "gt_grad_thresh"
     ]
-    df_fused = df_fused.merge(
-        df_features[gt_cols],
-        on=["filename", "c_rate"],
-        how="left"
-    )
+    
+    # Only merge if gt_label not already present
+    if "gt_label" not in df_fused.columns:
+        df_fused = df_fused.merge(
+            df_features[gt_cols],
+            on=["filename", "c_rate"],
+            how="left"
+        )
+        print(f"gt_label merged. NaN count: {df_fused['gt_label'].isna().sum()}")
+    else:
+        print("gt_label already present in df_fused")
+    
+    print(f"df_fused columns: {df_fused.columns.tolist()}")
 
     # ── Stage 5 ───────────────────────────
     summary_df, crate_df, diff_df, full_report = (
