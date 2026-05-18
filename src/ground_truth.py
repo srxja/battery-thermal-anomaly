@@ -57,7 +57,7 @@ def assign_ground_truth(df):
     gradient_thresh = np.percentile(df["gradient"], GT_GRADIENT_PERCENTILE)
 
     df["gt_label"] = (
-        (df["max_temp"] >= max_temp_thresh) &
+        (df["max_temp"] >= max_temp_thresh) |
         (df["gradient"] >= gradient_thresh)
     ).astype(int)
 
