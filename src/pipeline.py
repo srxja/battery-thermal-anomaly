@@ -33,7 +33,8 @@ from ground_truth import (
 )
 from autoencoder import (
     train_autoencoder,
-    compute_reconstruction_scores
+    compute_reconstruction_scores,
+    load_autoencoder
 )
 from clustering import (
     remove_multicollinear_features,
@@ -77,28 +78,33 @@ def stage_1_features():
     return df_features
 
 
-def stage_2_autoencoder(df_features):
+def stage_2_autoencoder(df_features, skip_training=False):
     """
-    Train Conv autoencoder on all images.
-    Compute per-image reconstruction scores.
+    Train Conv autoencoder or load saved model.
 
-    Output:
-        autoencoder  : trained model
-        history      : training history
-        df_ae_scores : DataFrame with reconstruction_error,
-                       ae_anomaly per image
+    Args:
+        df_features   : not used directly but kept for
+                        consistency with other stages
+        skip_training : if True, loads saved model from disk
+                        instead of retraining. Use after
+                        first successful run to save time.
     """
     print("\n" + "="*50)
     print("STAGE 2: CONV AUTOENCODER")
     print("="*50)
 
-    # Load spatial images (N, H, W, 1) for Conv AE
     X_spatial, filenames, c_rates = load_all_images_spatial()
 
     print(f"Loaded {len(X_spatial)} images")
     print(f"Image shape: {X_spatial.shape[1:]}")
 
-    autoencoder, encoder, history = train_autoencoder(X_spatial)
+    if skip_training:
+        print("Skipping training — loading saved model...")
+        autoencoder = load_autoencoder()
+        encoder     = None
+        history     = None
+    else:
+        autoencoder, encoder, history = train_autoencoder(X_spatial)
 
     df_ae_scores, ae_threshold = compute_reconstruction_scores(
         autoencoder, X_spatial, filenames, c_rates
@@ -123,20 +129,16 @@ def stage_3_clustering(df_features):
     print("STAGE 3: CLUSTERING")
     print("="*50)
 
-    # VIF filtering
     selected_cols, vif_table = remove_multicollinear_features(
         df_features
     )
 
-    # PCA
     df_pca, pca, scaler, explained = apply_pca(
         df_features, selected_cols
     )
 
-    # Find best K
     best_k, k_results = find_optimal_k(df_pca)
 
-    # KMeans
     df_clustered, kmeans = apply_kmeans(df_pca, best_k)
 
     pca_meta = {
@@ -195,46 +197,82 @@ def stage_5_evaluation(df_fused):
 
     diff_df = analyze_feature_differences(df_fused)
 
-    # Add per-method rates directly to crate_df
-    for c_rate, group in df_fused.groupby("c_rate"):
-        km_rate = 100 * group["km_anomaly"].sum() / len(group)
-        ae_rate = 100 * group["ae_anomaly"].sum() / len(group)
-        crate_df.loc[crate_df["C_Rate"] == c_rate, "KMeans_Rate_%"] = km_rate
-        crate_df.loc[crate_df["C_Rate"] == c_rate, "AE_Rate_%"]    = ae_rate
+    # Add per-method rates directly using iterrows
+    # to avoid column naming issues with groupby
+    crate_df["KMeans_Rate_%"] = 0.0
+    crate_df["AE_Rate_%"]     = 0.0
 
-    # Save final anomaly file
+    for i, row in crate_df.iterrows():
+        c     = row["C_Rate"]
+        group = df_fused[df_fused["c_rate"] == c]
+        crate_df.at[i, "KMeans_Rate_%"] = (
+            100 * group["km_anomaly"].sum() / len(group)
+        )
+        crate_df.at[i, "AE_Rate_%"] = (
+            100 * group["ae_anomaly"].sum() / len(group)
+        )
+
     save_final_anomalies(df_fused)
 
     return summary_df, crate_df, diff_df, full_report
-    
+
+
 def stage_6_visualize(
     df_fused, history, autoencoder,
     crate_df, diff_df
 ):
     """
     Generate all plots.
+    Skips training history plot if model was loaded
+    rather than trained in this session.
     """
     print("\n" + "="*50)
     print("STAGE 6: VISUALIZATION")
     print("="*50)
 
-    generate_all_plots(
-        df       = df_fused,
-        history  = history,
-        autoencoder = autoencoder,
-        crate_df = crate_df,
-        diff_df  = diff_df,
-        threshold= HYBRID_THRESHOLD
-    )
+    if history is not None:
+        generate_all_plots(
+            df          = df_fused,
+            history     = history,
+            autoencoder = autoencoder,
+            crate_df    = crate_df,
+            diff_df     = diff_df,
+            threshold   = HYBRID_THRESHOLD
+        )
+    else:
+        # Skip training history plot when model was loaded
+        from visualize import (
+            plot_feature_distributions,
+            plot_pca_scatter,
+            plot_hybrid_score_distribution,
+            plot_anomaly_rate_by_crate,
+            plot_feature_heatmap,
+            plot_top_anomalies,
+            plot_reconstruction_examples,
+            plot_agreement_breakdown
+        )
+        plot_feature_distributions(df_fused)
+        plot_pca_scatter(df_fused)
+        plot_hybrid_score_distribution(df_fused, HYBRID_THRESHOLD)
+        plot_anomaly_rate_by_crate(crate_df)
+        plot_feature_heatmap(diff_df)
+        plot_top_anomalies(df_fused)
+        plot_reconstruction_examples(df_fused, autoencoder)
+        plot_agreement_breakdown(df_fused)
 
 
 # ─────────────────────────────────────────
 # FULL PIPELINE
 # ─────────────────────────────────────────
 
-def run():
+def run(skip_training=False):
     """
     Run the complete pipeline end to end.
+
+    Args:
+        skip_training: if True, loads saved autoencoder
+                       instead of retraining. Use after
+                       first successful run.
 
     Stage 1 : Feature extraction + ground truth
     Stage 2 : Conv autoencoder training + scoring
@@ -257,7 +295,7 @@ def run():
 
     # ── Stage 2 ───────────────────────────
     autoencoder, encoder, history, df_ae_scores, ae_threshold = (
-        stage_2_autoencoder(df_features)
+        stage_2_autoencoder(df_features, skip_training=skip_training)
     )
 
     # ── Stage 3 ───────────────────────────
@@ -275,19 +313,17 @@ def run():
         "filename", "c_rate", "gt_label",
         "gt_max_thresh", "gt_grad_thresh"
     ]
-    
-    # Only merge if gt_label not already present
+
     if "gt_label" not in df_fused.columns:
         df_fused = df_fused.merge(
             df_features[gt_cols],
             on=["filename", "c_rate"],
             how="left"
         )
-        print(f"gt_label merged. NaN count: {df_fused['gt_label'].isna().sum()}")
+        print(f"gt_label merged. NaN count: "
+              f"{df_fused['gt_label'].isna().sum()}")
     else:
         print("gt_label already present in df_fused")
-    
-    print(f"df_fused columns: {df_fused.columns.tolist()}")
 
     # ── Stage 5 ───────────────────────────
     summary_df, crate_df, diff_df, full_report = (
@@ -363,7 +399,7 @@ def _print_final_summary(
     ]].to_string(index=False))
 
     print("\n── Key Finding ─────────────────────────")
-    rates = crate_df["Anomaly_Rate_%"].tolist()
+    rates  = crate_df["Anomaly_Rate_%"].tolist()
     crates = crate_df["C_Rate"].tolist()
     for c, r in zip(crates, rates):
         bar = "█" * int(r)
