@@ -194,6 +194,7 @@ def evaluate_per_crate(df):
         print()
 
     crate_df = pd.DataFrame(records)
+    print(f"crate_df columns: {crate_df.columns.tolist()}")
 
     # Interpret the trend
     _interpret_crate_trend(crate_df)
