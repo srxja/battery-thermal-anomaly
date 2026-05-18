@@ -184,38 +184,29 @@ def stage_5_evaluation(df_fused):
         crate_df    : per C-rate metrics
         diff_df     : feature differences anomalous vs normal
     """
+
     print("\n" + "="*50)
     print("STAGE 5: EVALUATION")
     print("="*50)
 
-    # Merge ground truth back into fused df
-    # gt_label comes from df_features, already in df_fused
-    # via the clustering merge chain
     summary_df, full_report = evaluate_all(df_fused)
 
     crate_df = evaluate_per_crate(df_fused)
 
     diff_df = analyze_feature_differences(df_fused)
 
-    km_rates = df_fused.groupby("c_rate")["km_anomaly"].apply(
-        lambda g: 100 * g.sum() / len(g)
-    ).reset_index()
-    km_rates.columns = ["c_rate", "KMeans_Rate_%"]
-
-    ae_rates = df_fused.groupby("c_rate")["ae_anomaly"].apply(
-        lambda g: 100 * g.sum() / len(g)
-    ).reset_index()
-    ae_rates.columns = ["c_rate", "AE_Rate_%"]
-
-    crate_df = crate_df.merge(km_rates, on="c_rate", how="left")
-    crate_df = crate_df.merge(ae_rates, on="c_rate", how="left")
+    # Add per-method rates directly to crate_df
+    for c_rate, group in df_fused.groupby("c_rate"):
+        km_rate = 100 * group["km_anomaly"].sum() / len(group)
+        ae_rate = 100 * group["ae_anomaly"].sum() / len(group)
+        crate_df.loc[crate_df["c_rate"] == c_rate, "KMeans_Rate_%"] = km_rate
+        crate_df.loc[crate_df["c_rate"] == c_rate, "AE_Rate_%"]    = ae_rate
 
     # Save final anomaly file
     save_final_anomalies(df_fused)
 
     return summary_df, crate_df, diff_df, full_report
-
-
+    
 def stage_6_visualize(
     df_fused, history, autoencoder,
     crate_df, diff_df
