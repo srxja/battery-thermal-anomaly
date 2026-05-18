@@ -197,14 +197,13 @@ def stage_5_evaluation(df_fused):
 
     diff_df = analyze_feature_differences(df_fused)
 
-    # Add per-method rates to crate_df for plotting
-    km_rates = df_fused.groupby("c_rate").apply(
-        lambda g: 100 * g["km_anomaly"].sum() / len(g)
+    km_rates = df_fused.groupby("c_rate")["km_anomaly"].apply(
+        lambda g: 100 * g.sum() / len(g)
     ).reset_index()
     km_rates.columns = ["c_rate", "KMeans_Rate_%"]
 
-    ae_rates = df_fused.groupby("c_rate").apply(
-        lambda g: 100 * g["ae_anomaly"].sum() / len(g)
+    ae_rates = df_fused.groupby("c_rate")["ae_anomaly"].apply(
+        lambda g: 100 * g.sum() / len(g)
     ).reset_index()
     ae_rates.columns = ["c_rate", "AE_Rate_%"]
 
