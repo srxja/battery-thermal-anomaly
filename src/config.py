@@ -75,9 +75,9 @@ EARLY_STOPPING_PAT  = 10
 # ANOMALY SCORING
 # ─────────────────────────────────────────
 ANOMALY_PERCENTILE  = 95    # top 5% = anomalous
-HYBRID_THRESHOLD    = 0.6
-HYBRID_W_RECON      = 0.6   # weight for autoencoder score
-HYBRID_W_KMEANS     = 0.4   # weight for kmeans score
+HYBRID_THRESHOLD    = 0.3
+HYBRID_W_RECON      = 0.7   # weight for autoencoder score
+HYBRID_W_KMEANS     = 0.3   # weight for kmeans score
 
 # ─────────────────────────────────────────
 # CREATE ALL DIRS ON IMPORT
