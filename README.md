@@ -90,3 +90,53 @@ recall, validating the fusion approach.
 - GMM separability: 1.14
 
 ## Pipeline Structure
+src/
+├── config.py        — paths, constants, hyperparameters
+├── features.py      — image preprocessing + feature extraction
+├── ground_truth.py  — physics-based proxy labeling
+├── autoencoder.py   — convolutional autoencoder
+├── clustering.py    — VIF filtering, PCA, KMeans
+├── fusion.py        — hybrid score fusion + GMM separability
+├── evaluate.py      — metrics + interpretation
+├── visualize.py     — all plots
+└── pipeline.py      — end-to-end orchestration
+
+## Running the Pipeline
+```python
+# In Google Colab
+from google.colab import drive
+drive.mount('/content/drive')
+
+import importlib.util, sys
+
+src_path = '/content/drive/MyDrive/0research/battery-thermal-anomaly/src'
+
+def load_module(name):
+    spec   = importlib.util.spec_from_file_location(
+        name, f"{src_path}/{name}.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+for mod in ['config','features','ground_truth','autoencoder',
+            'clustering','fusion','evaluate','visualize']:
+    load_module(mod)
+pipeline = load_module('pipeline')
+
+# First run — trains autoencoder
+results = pipeline.run()
+
+# Subsequent runs — loads saved model
+results = pipeline.run(skip_training=True)
+```
+
+## Requirements
+See `requirements.txt`
+
+## Target Venue
+IEEE Region 10 Conference (TENCON) 2026
+Theme: Intelligent Systems for a Resilient and Sustainable Society
+
+## Citation
+To be added after submission.
