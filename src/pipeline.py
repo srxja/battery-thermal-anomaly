@@ -199,8 +199,8 @@ def stage_5_evaluation(df_fused):
     for c_rate, group in df_fused.groupby("c_rate"):
         km_rate = 100 * group["km_anomaly"].sum() / len(group)
         ae_rate = 100 * group["ae_anomaly"].sum() / len(group)
-        crate_df.loc[crate_df["c_rate"] == c_rate, "KMeans_Rate_%"] = km_rate
-        crate_df.loc[crate_df["c_rate"] == c_rate, "AE_Rate_%"]    = ae_rate
+        crate_df.loc[crate_df["C_Rate"] == c_rate, "KMeans_Rate_%"] = km_rate
+        crate_df.loc[crate_df["C_Rate"] == c_rate, "AE_Rate_%"]    = ae_rate
 
     # Save final anomaly file
     save_final_anomalies(df_fused)
